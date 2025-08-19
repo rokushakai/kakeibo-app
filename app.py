@@ -55,7 +55,7 @@ def index():
         current_sort_order=sort_order
     )
 
-@app.route('/add', methods=['POST'])
+@app.route('/kakeibo/add', methods=['POST'])
 def add_expense():
     """フォームから送信された支出をデータベースに追加する"""
     date = request.form['date_hidden']
