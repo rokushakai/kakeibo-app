@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家計簿アプリ</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; background-color: #f9f9f9; }
+        .container { max-width: 800px; margin: auto; background-color: #fff; padding: 2em; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .form-section, .list-section { margin-bottom: 2em; }
+        h1, h2 { color: #333; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .form-group { margin-bottom: 1em; }
+        label { display: block; margin-bottom: 0.5em; font-weight: bold; color: #555; }
+        input, select, button { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; font-size: 1em; }
+        button:hover { background-color: #0056b3; }
+        .date-selects { display: flex; gap: 10px; }
+        .date-selects select { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>家計簿アプリ</h1>
+        <p><a href="{{ url_for('search') }}">詳細な検索・エクスポートはこちら &raquo;</a></p>
+
+        <div class="form-section">
+            <h2>支出を登録</h2>
+            <form action="/add" method="post" id="expense-form">
+                <div class="form-group">
+                    <label>日付:</label>
+                    <div class="date-selects">
+                        <select id="year"></select>
+                        <select id="month"></select>
+                        <select id="day"></select>
+                    </div>
+                    <input type="date" id="date-calendar" style="margin-top: 5px;">
+                    <input type="hidden" id="date_hidden" name="date_hidden">
+                </div>
+
+                <div class="form-group">
+                    <label for="amount">金額 (円):</label>
+                    <input type="number" id="amount" name="amount" required>
+                </div>
+                <div class="form-group">
+                    <label for="item_name">品物:</label>
+                    <input type="text" id="item_name" name="item_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">勘定科目:</label>
+                    <select id="category" name="category" required>
+                        {% for cat in regular_categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="proprietor_category">事業主費:</label>
+                    <select id="proprietor_category" name="proprietor_category">
+                        <option value="" selected>-- 選択しない --</option>
+                        {% for cat in proprietor_categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit">登録</button>
+            </form>
+        </div>
+
+        <div class="list-section">
+            <h2>
+                支出一覧
+                <span style="font-size: 0.8em; font-weight: normal; margin-left: 20px;">
+                    {% if current_sort_order == 'desc' %}
+                        <a href="{{ url_for('index', sort_order='asc') }}">古い順に並び替え</a>
+                    {% else %}
+                        <a href="{{ url_for('index', sort_order='desc') }}">新しい順に並び替え</a>
+                    {% endif %}
+                </span>
+            </h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>日付</th>
+                        <th>品物</th>
+                        <th>勘定科目</th>
+                        <th>事業主費(内訳)</th>
+                        <th>金額 (円)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr>
+                        <td>{{ expense.date }}</td>
+                        <td>{{ expense.item_name }}</td>
+                        <td>{{ expense.category }}</td>
+                        <td>{{ expense.sub_category or '' }}</td>
+                        <td style="text-align: right;">{{ expense.amount | format_currency }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">登録された支出はありません。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const yearSelect = document.getElementById('year');
+        const monthSelect = document.getElementById('month');
+        const daySelect = document.getElementById('day');
+        const calendarInput = document.getElementById('date-calendar');
+        const hiddenDateInput = document.getElementById('date_hidden');
+        const proprietorSelect = document.getElementById('proprietor_category');
+        const categorySelect = document.getElementById('category');
+        
+        function populateDates() {
+            const selectedDate = new Date(hiddenDateInput.value + 'T00:00:00');
+            const currentYear = new Date().getFullYear();
+            
+            for (let i = currentYear; i >= currentYear - 10; i--) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i + '年';
+                yearSelect.appendChild(option);
+            }
+
+            for (let i = 1; i <= 12; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i + '月';
+                monthSelect.appendChild(option);
+            }
+
+            yearSelect.value = selectedDate.getFullYear();
+            monthSelect.value = selectedDate.getMonth() + 1;
+            populateDays();
+            daySelect.value = selectedDate.getDate();
+        }
+
+        function populateDays() {
+            const year = yearSelect.value;
+            const month = monthSelect.value;
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const currentDay = daySelect.value;
+            daySelect.innerHTML = '';
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i + '日';
+                daySelect.appendChild(option);
+            }
+            if(currentDay <= daysInMonth) {
+                daySelect.value = currentDay;
+            }
+        }
+
+        function updateHiddenDate() {
+            const year = yearSelect.value;
+            const month = String(monthSelect.value).padStart(2, '0');
+            const day = String(daySelect.value).padStart(2, '0');
+            const fullDate = `${year}-${month}-${day}`;
+            hiddenDateInput.value = fullDate;
+            calendarInput.value = fullDate;
+        }
+
+        function handleProprietorChange() {
+            if (proprietorSelect.value !== "") {
+                categorySelect.value = '事業主費';
+            }
+        }
+        
+        window.onload = function() {
+            hiddenDateInput.value = '{{ last_date }}';
+            populateDates();
+            updateHiddenDate();
+        };
+
+        yearSelect.addEventListener('change', () => { populateDays(); updateHiddenDate(); });
+        monthSelect.addEventListener('change', () => { populateDays(); updateHiddenDate(); });
+        daySelect.addEventListener('change', updateHiddenDate);
+        calendarInput.addEventListener('change', () => {
+            const dateParts = calendarInput.value.split('-');
+            yearSelect.value = dateParts[0];
+            monthSelect.value = parseInt(dateParts[1], 10);
+            populateDays();
+            daySelect.value = parseInt(dateParts[2], 10);
+            updateHiddenDate();
+        });
+        proprietorSelect.addEventListener('change', handleProprietorChange);
+    </script>
+</body>
+</html>

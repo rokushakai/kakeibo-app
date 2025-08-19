@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支出の検索とエクスポート</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; background-color: #f9f9f9; }
+        .container { max-width: 900px; margin: auto; background-color: #fff; padding: 2em; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .search-form { background-color: #f8f9fa; padding: 1.5em; border-radius: 5px; margin-bottom: 2em; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1em; }
+        .form-group { margin-bottom: 1em; }
+        .checkbox-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; border: 1px solid #ccc; padding: 10px; border-radius: 4px; }
+        .checkbox-group label { font-weight: normal; display: flex; align-items: center; }
+        .checkbox-group input { width: auto; margin-right: 8px;}
+        label { display: block; margin-bottom: 0.5em; font-weight: bold; }
+        input, select, button { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;}
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; margin-top: 1em; font-size: 1em;}
+        button:hover { background-color: #0056b3; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #e9ecef; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
+        .export-button { background-color: #28a745; padding: 10px 15px; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>支出の検索とエクスポート</h1>
+        <p><a href="{{ url_for('index') }}">&laquo; 登録ページに戻る</a></p>
+
+        <div class="search-form">
+            <form method="get" action="{{ url_for('search') }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="start_date">期間 (開始)</label>
+                        <input type="date" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date">期間 (終了)</label>
+                        <input type="date" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="min_amount">金額 (下限)</label>
+                        <input type="number" id="min_amount" name="min_amount" placeholder="例: 1000" value="{{ request.args.get('min_amount', '') }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="max_amount">金額 (上限)</label>
+                        <input type="number" id="max_amount" name="max_amount" placeholder="例: 5000" value="{{ request.args.get('max_amount', '') }}" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="keyword">フリーワード (品物)</label>
+                        <input type="text" id="keyword" name="keyword" placeholder="例: コーヒー" value="{{ request.args.get('keyword', '') }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>勘定科目</label>
+                    <div class="checkbox-group">
+                        {% for category in all_categories %}
+                        <label>
+                            <input type="checkbox" name="categories" value="{{ category }}" {% if category in request.args.getlist('categories') %}checked{% endif %}>
+                            {{ category }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>事業主費（内訳）</label>
+                     <div class="checkbox-group">
+                        {% for category in proprietor_categories %}
+                        <label>
+                            <input type="checkbox" name="sub_categories" value="{{ category }}" {% if category in request.args.getlist('sub_categories') %}checked{% endif %}>
+                            {{ category }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button type="submit">この条件で検索</button>
+            </form>
+        </div>
+
+        {% if request.args %}
+        <div class="results-section">
+            <div class="results-header">
+                <h2>検索結果 ({{ results|length }}件) - 合計: {{ total_amount | format_currency }}円</h2>
+                {% if results %}
+                <a href="{{ url_for('export_csv', **request.args) }}" class="export-button">CSVエクスポート</a>
+                {% endif %}
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>日付</th>
+                        <th>品物</th>
+                        <th>勘定科目</th>
+                        <th>事業主費(内訳)</th>
+                        <th>金額 (円)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in results %}
+                    <tr>
+                        <td>{{ expense.date }}</td>
+                        <td>{{ expense.item_name }}</td>
+                        <td>{{ expense.category }}</td>
+                        <td>{{ expense.sub_category or '' }}</td>
+                        <td style="text-align: right;">{{ expense.amount | format_currency }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">該当する支出はありませんでした。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
