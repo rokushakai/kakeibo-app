@@ -28,10 +28,10 @@
 <body>
     <div class="container">
         <h1>支出の検索とエクスポート</h1>
-        <p><a href="{{ url_for('index') }}">&laquo; 登録ページに戻る</a></p>
+        <p><a href="{{ url_for('kakeibo.index') }}">&laquo; 登録ページに戻る</a></p>
 
         <div class="search-form">
-            <form method="get" action="{{ url_for('search') }}">
+            <form method="get" action="{{ url_for('kakeibo.search') }}">
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="start_date">期間 (開始)</label>
@@ -85,7 +85,7 @@
             <div class="results-header">
                 <h2>検索結果 ({{ results|length }}件) - 合計: {{ total_amount | format_currency }}円</h2>
                 {% if results %}
-                <a href="{{ url_for('export_csv', **request.args) }}" class="export-button">CSVエクスポート</a>
+                <a href="{{ url_for('kakeibo.export_csv', **request.args) }}" class="export-button">CSVエクスポート</a>
                 {% endif %}
             </div>
             <table>

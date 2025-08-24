@@ -25,11 +25,11 @@
 <body>
     <div class="container">
         <h1>家計簿アプリ</h1>
-        <p><a href="{{ url_for('search') }}">詳細な検索・エクスポートはこちら &raquo;</a></p>
+        <p><a href="{{ url_for('kakeibo.search') }}">詳細な検索・エクスポートはこちら &raquo;</a></p>
 
         <div class="form-section">
             <h2>支出を登録</h2>
-            <form action="{{ url_for('add_expense') }}" method="post" id="expense-form">
+            <form action="{{ url_for('kakeibo.add_expense') }}" method="post" id="expense-form">
                 <div class="form-group">
                     <label>日付:</label>
                     <div class="date-selects">
@@ -78,9 +78,9 @@
                 支出一覧
                 <span style="font-size: 0.8em; font-weight: normal; margin-left: 20px;">
                     {% if current_sort_order == 'desc' %}
-                        <a href="{{ url_for('index', sort_order='asc') }}">古い順に並び替え</a>
+                        <a href="{{ url_for('kakeibo.index', sort_order='asc') }}">古い順に並び替え</a>
                     {% else %}
-                        <a href="{{ url_for('index', sort_order='desc') }}">新しい順に並び替え</a>
+                        <a href="{{ url_for('kakeibo.index', sort_order='desc') }}">新しい順に並び替え</a>
                     {% endif %}
                 </span>
             </h2>
